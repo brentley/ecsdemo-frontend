@@ -1,0 +1,10 @@
+---
+service:
+  desiredCount: 3
+  maxSize: 6
+  port: 3000
+  pathPatterns:
+  - /*
+  networkMode: awsvpc
+  environment:
+    BACKEND_API: "http://api.internal.service:80"
