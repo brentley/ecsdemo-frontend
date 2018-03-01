@@ -1,9 +1,4 @@
 ---
-environments:
-  - name: acceptance
-    provider: ecs-fargate
-  - name: production
-    provider: ecs-fargate
 service:
   desiredCount: 3
   maxSize: 6
