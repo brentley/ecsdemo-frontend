@@ -6,5 +6,5 @@ service:
   pathPatterns:
   - /*
   environment:
-    CRYSTAL_URL: "http://ecsdemo-crystal.${ServiceDiscoveryName}/crystal"
-    NODEJS_URL: "http://ecsdemo-nodejs.${ServiceDiscoveryName}/"
+    CRYSTAL_URL: "http://ecsdemo-crystal/crystal"
+    NODEJS_URL: "http://ecsdemo-nodejs/"
