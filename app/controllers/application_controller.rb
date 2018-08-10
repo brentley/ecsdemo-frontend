@@ -63,7 +63,7 @@ class ApplicationController < ActionController::Base
     
     # lookup the SRV record and use if found
     begin
-      srv = resolver.getresource("_#{uri.scheme}._tcp.#{host}", Resolv::DNS::Resource::IN::SRV)
+      srv = resolver.getresource(host, Resolv::DNS::Resource::IN::SRV)
       uri.host = srv.target.to_s
       uri.port = srv.port.to_s
     rescue => e
