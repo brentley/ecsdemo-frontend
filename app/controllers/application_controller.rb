@@ -56,10 +56,21 @@ class ApplicationController < ActionController::Base
   # Resolve the SRV records for the hostname in the URL
   def expand_url(url)
     uri = URI(url)
-    resolver = Resolv::DNS.new(:search => [ENV["_SERVICE_DISCOVERY_NAME"]])
-    srv = resolver.getresource("_#{uri.scheme}._tcp.#{uri.host}", Resolv::DNS::Resource::IN::SRV)
-    uri.host = srv.target.to_s
-    uri.port = srv.port.to_s
+    resolver = Resolv::DNS.new()
+    
+    # if host is relative, append the service discovery name
+    host = uri.host.count('.') > 0 ? uri.host : "#{uri.host}.#{ENV["_SERVICE_DISCOVERY_NAME"]}"
+    
+    # lookup the SRV record and use if found
+    begin
+      srv = resolver.getresource("_#{uri.scheme}._tcp.#{host}", Resolv::DNS::Resource::IN::SRV)
+      uri.host = srv.target.to_s
+      uri.port = srv.port.to_s
+    rescue => e
+      logger.error e.message
+      logger.error e.backtrace.join("\n")
+    end
+    
     logger.info "expanded #{url} to #{uri}"
     uri
   end
