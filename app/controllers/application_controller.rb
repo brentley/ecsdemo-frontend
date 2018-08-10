@@ -10,9 +10,8 @@ class ApplicationController < ActionController::Base
   # Example endpoint that calls the backend nodejs api
   def index
     begin
-      url = URI.parse(backend_addr)
-      req = Net::HTTP::Get.new(url.to_s)
-      res = Net::HTTP.start(url.host, url.port) {|http|
+      req = Net::HTTP::Get.new(nodejs_uri.to_s)
+      res = Net::HTTP.start(nodejs_uri.host, nodejs_uri.port) {|http|
         http.request(req)
       }
 
@@ -22,9 +21,8 @@ class ApplicationController < ActionController::Base
         @text = "no backend found"
       end
 
-      crystalurl = URI.parse(crystal_addr)
-      crystalreq = Net::HTTP::Get.new(crystalurl.to_s)
-      crystalres = Net::HTTP.start(crystalurl.host, crystalurl.port) {|http|
+      crystalreq = Net::HTTP::Get.new(crystal_uri.to_s)
+      crystalres = Net::HTTP.start(crystal_uri.host, crystal_uri.port) {|http|
         http.request(crystalreq)
       }
 
@@ -34,7 +32,9 @@ class ApplicationController < ActionController::Base
         @crystal = "no backend found"
       end
 
-    rescue
+    rescue => e
+      logger.error e.message
+      logger.error e.backtrace.join("\n")
       @text = "no backend found"
       @crystal = "no backend found"
     end
@@ -45,11 +45,11 @@ class ApplicationController < ActionController::Base
     render plain: "OK"
   end
 
-  def crystal_addr
+  def crystal_uri
     expand_url ENV["CRYSTAL_URL"]
   end
 
-  def backend_addr
+  def nodejs_uri
     expand_url ENV["NODEJS_URL"]
   end
   
@@ -60,7 +60,8 @@ class ApplicationController < ActionController::Base
     srv = resolver.getresource("_#{uri.scheme}._tcp.#{uri.host}", Resolv::DNS::Resource::IN::SRV)
     uri.host = srv.target.to_s
     uri.port = srv.port.to_s
-    uri.to_s
+    logger.info "expanded #{url} to #{uri}"
+    uri
   end
 
   before_action :discover_availability_zone
