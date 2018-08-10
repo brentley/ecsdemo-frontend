@@ -1,4 +1,6 @@
 require 'net/http'
+require 'resolv'
+require 'uri'
 
 class ApplicationController < ActionController::Base
   # Prevent CSRF attacks by raising an exception.
@@ -44,15 +46,21 @@ class ApplicationController < ActionController::Base
   end
 
   def crystal_addr
-    crystal_addr = ENV["BACKEND_API"]
-    # The address will be of the form, http://172.17.0.5:5432, so we add a trailing slash
-    crystal_addr.sub(/^http:/, 'http:') + "/crystal"
+    expand_url ENV["CRYSTAL_URL"]
   end
 
   def backend_addr
-    backend_addr = ENV["BACKEND_API"]
-    # The address will be of the form, http://172.17.0.5:5432, so we add a trailing slash
-    backend_addr.sub(/^http:/, 'http:') + "/"
+    expand_url ENV["NODEJS_URL"]
+  end
+  
+  # Resolve the SRV records for the hostname in the URL
+  def expand_url(url)
+    uri = URI(url)
+    resolver = Resolv::DNS.new()
+    srv = resolver.getresource("_#{uri.scheme}._tcp.#{uri.host}", Resolv::DNS::Resource::IN::SRV)
+    uri.host = srv.target.to_s
+    uri.port = srv.port.to_s
+    uri.to_s
   end
 
   before_action :discover_availability_zone
