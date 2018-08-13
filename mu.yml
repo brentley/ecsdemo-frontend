@@ -5,6 +5,7 @@ service:
   port: 3000
   pathPatterns:
   - /*
+  discoveryTTL: 5
   environment:
     CRYSTAL_URL: "http://ecsdemo-crystal/crystal"
     NODEJS_URL: "http://ecsdemo-nodejs/"

@@ -21,6 +21,13 @@ class ApplicationController < ActionController::Base
         @text = "no backend found"
       end
 
+    rescue => e
+      logger.error e.message
+      logger.error e.backtrace.join("\n")
+      @text = "no backend found"
+    end
+
+    begin
       crystalreq = Net::HTTP::Get.new(crystal_uri.to_s)
       crystalres = Net::HTTP.start(crystal_uri.host, crystal_uri.port) {|http|
         http.request(crystalreq)
@@ -35,7 +42,6 @@ class ApplicationController < ActionController::Base
     rescue => e
       logger.error e.message
       logger.error e.backtrace.join("\n")
-      @text = "no backend found"
       @crystal = "no backend found"
     end
   end
@@ -52,15 +58,15 @@ class ApplicationController < ActionController::Base
   def nodejs_uri
     expand_url ENV["NODEJS_URL"]
   end
-  
+
   # Resolve the SRV records for the hostname in the URL
   def expand_url(url)
     uri = URI(url)
     resolver = Resolv::DNS.new()
-    
+
     # if host is relative, append the service discovery name
     host = uri.host.count('.') > 0 ? uri.host : "#{uri.host}.#{ENV["_SERVICE_DISCOVERY_NAME"]}"
-    
+
     # lookup the SRV record and use if found
     begin
       srv = resolver.getresource(host, Resolv::DNS::Resource::IN::SRV)
@@ -70,7 +76,7 @@ class ApplicationController < ActionController::Base
       logger.error e.message
       logger.error e.backtrace.join("\n")
     end
-    
+
     logger.info "expanded #{url} to #{uri}"
     uri
   end
