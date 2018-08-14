@@ -5,6 +5,7 @@ service:
   port: 3000
   pathPatterns:
   - /*
-  networkMode: awsvpc
+  discoveryTTL: 5
   environment:
-    BACKEND_API: "http://api.internal.service:80"
+    CRYSTAL_URL: "http://ecsdemo-crystal/crystal"
+    NODEJS_URL: "http://ecsdemo-nodejs/"

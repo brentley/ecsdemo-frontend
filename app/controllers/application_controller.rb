@@ -1,4 +1,6 @@
 require 'net/http'
+require 'resolv'
+require 'uri'
 
 class ApplicationController < ActionController::Base
   # Prevent CSRF attacks by raising an exception.
@@ -8,9 +10,8 @@ class ApplicationController < ActionController::Base
   # Example endpoint that calls the backend nodejs api
   def index
     begin
-      url = URI.parse(backend_addr)
-      req = Net::HTTP::Get.new(url.to_s)
-      res = Net::HTTP.start(url.host, url.port) {|http|
+      req = Net::HTTP::Get.new(nodejs_uri.to_s)
+      res = Net::HTTP.start(nodejs_uri.host, nodejs_uri.port) {|http|
         http.request(req)
       }
 
@@ -20,9 +21,15 @@ class ApplicationController < ActionController::Base
         @text = "no backend found"
       end
 
-      crystalurl = URI.parse(crystal_addr)
-      crystalreq = Net::HTTP::Get.new(crystalurl.to_s)
-      crystalres = Net::HTTP.start(crystalurl.host, crystalurl.port) {|http|
+    rescue => e
+      logger.error e.message
+      logger.error e.backtrace.join("\n")
+      @text = "no backend found"
+    end
+
+    begin
+      crystalreq = Net::HTTP::Get.new(crystal_uri.to_s)
+      crystalres = Net::HTTP.start(crystal_uri.host, crystal_uri.port) {|http|
         http.request(crystalreq)
       }
 
@@ -32,8 +39,9 @@ class ApplicationController < ActionController::Base
         @crystal = "no backend found"
       end
 
-    rescue
-      @text = "no backend found"
+    rescue => e
+      logger.error e.message
+      logger.error e.backtrace.join("\n")
       @crystal = "no backend found"
     end
   end
@@ -43,16 +51,34 @@ class ApplicationController < ActionController::Base
     render plain: "OK"
   end
 
-  def crystal_addr
-    crystal_addr = ENV["BACKEND_API"]
-    # The address will be of the form, http://172.17.0.5:5432, so we add a trailing slash
-    crystal_addr.sub(/^http:/, 'http:') + "/crystal"
+  def crystal_uri
+    expand_url ENV["CRYSTAL_URL"]
   end
 
-  def backend_addr
-    backend_addr = ENV["BACKEND_API"]
-    # The address will be of the form, http://172.17.0.5:5432, so we add a trailing slash
-    backend_addr.sub(/^http:/, 'http:') + "/"
+  def nodejs_uri
+    expand_url ENV["NODEJS_URL"]
+  end
+
+  # Resolve the SRV records for the hostname in the URL
+  def expand_url(url)
+    uri = URI(url)
+    resolver = Resolv::DNS.new()
+
+    # if host is relative, append the service discovery name
+    host = uri.host.count('.') > 0 ? uri.host : "#{uri.host}.#{ENV["_SERVICE_DISCOVERY_NAME"]}"
+
+    # lookup the SRV record and use if found
+    begin
+      srv = resolver.getresource(host, Resolv::DNS::Resource::IN::SRV)
+      uri.host = srv.target.to_s
+      uri.port = srv.port.to_s
+    rescue => e
+      logger.error e.message
+      logger.error e.backtrace.join("\n")
+    end
+
+    logger.info "expanded #{url} to #{uri}"
+    uri
   end
 
   before_action :discover_availability_zone
