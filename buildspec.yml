@@ -9,15 +9,15 @@ phases:
       - printenv
   build:
     commands:
-      # - docker build -t myimage .
+      - docker build -t myimage .
   post_build:
     commands:
       - printf '[{"name":"example-backend","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
       - echo $IMAGE_TAG > code_hash.txt
-      # - docker pull anchore/cli
-      # - docker run -d -v $(pwd):/source-dir -v /var/run/docker.sock:/var/run/docker.sock --name anchore anchore/cli:latest
-      # - docker exec anchore anchore feeds sync
-      # - docker exec anchore anchore analyze --image myimage --dockerfile /source-dir/Dockerfile
+      - docker pull anchore/cli
+      - docker run -d -v $(pwd):/source-dir -v /var/run/docker.sock:/var/run/docker.sock --name anchore anchore/cli:latest
+      - docker exec anchore anchore feeds sync
+      - docker exec anchore anchore analyze --image myimage --dockerfile /source-dir/Dockerfile
 
 artifacts:
   files:

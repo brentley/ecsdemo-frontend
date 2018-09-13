@@ -1,0 +1,5 @@
+mu svc push
+mu svc deploy acceptance
+
+fargate lb create frontend -p http:80
+fargate service create frontend --lb frontend --port http:3000
