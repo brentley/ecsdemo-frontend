@@ -12,6 +12,8 @@ class ApplicationController < ActionController::Base
     begin
       req = Net::HTTP::Get.new(nodejs_uri.to_s)
       res = Net::HTTP.start(nodejs_uri.host, nodejs_uri.port) {|http|
+        http.read_timeout = 2
+        http.open_timeout = 2
         http.request(req)
       }
 
@@ -30,6 +32,8 @@ class ApplicationController < ActionController::Base
     begin
       crystalreq = Net::HTTP::Get.new(crystal_uri.to_s)
       crystalres = Net::HTTP.start(crystal_uri.host, crystal_uri.port) {|http|
+        http.read_timeout = 2
+        http.open_timeout = 2
         http.request(crystalreq)
       }
 
@@ -72,6 +76,11 @@ class ApplicationController < ActionController::Base
       srv = resolver.getresource(host, Resolv::DNS::Resource::IN::SRV)
       uri.host = srv.target.to_s
       uri.port = srv.port.to_s
+      logger.info "uri port is #{uri.port}"
+      if uri.port == 0
+        uri.port = 80
+        logger.info "uri port is now #{uri.port}"
+      end
     rescue => e
       logger.error e.message
       logger.error e.backtrace.join("\n")
