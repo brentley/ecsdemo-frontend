@@ -73,8 +73,8 @@ class ApplicationController < ActionController::Base
       uri.host = srv.target.to_s
       uri.port = srv.port.to_s
       logger.info "uri port is #{uri.port}"
-      if uri.port == '0'
-        uri.port = 3000
+      if uri.port == 0
+        uri.port = 80
         logger.info "uri port is now #{uri.port}"
       end
     rescue => e
