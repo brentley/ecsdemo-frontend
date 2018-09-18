@@ -67,14 +67,19 @@ class ApplicationController < ActionController::Base
     # if host is relative, append the service discovery name
     host = uri.host.count('.') > 0 ? uri.host : "#{uri.host}.#{ENV["_SERVICE_DISCOVERY_NAME"]}"
 
-    # lookup the SRV record and use if found
-    begin
-      srv = resolver.getresource(host, Resolv::DNS::Resource::IN::SRV)
-      uri.host = srv.target.to_s
-      uri.port = srv.port.to_s
-    rescue => e
-      logger.error e.message
-      logger.error e.backtrace.join("\n")
+    if ENV['KUBERNETES_SERVICE_HOST'].nil? #look if we are running in k8s
+      # lookup the SRV record and use if found
+      begin
+        srv = resolver.getresource(host, Resolv::DNS::Resource::IN::SRV)
+        uri.host = srv.target.to_s
+        uri.port = srv.port.to_s
+      rescue => e
+        logger.error e.message
+        logger.error e.backtrace.join("\n")
+      end
+    else
+      uri.host = url
+      uri.port = '80'
     end
 
     logger.info "expanded #{url} to #{uri}"
