@@ -30,5 +30,9 @@ spec:
         env:
         - name: CRYSTAL_URL
           value: "http://ecsdemo-crystal.default.svc.cluster.local/crystal"
+        - name: CRYSTAL_PORT
+          value: "3000"
         - name: NODEJS_URL
           value: "http://ecsdemo-nodejs.default.svc.cluster.local/"
+        - name: NODEJS_PORT
+          value: "3000"

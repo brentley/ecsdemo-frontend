@@ -61,33 +61,31 @@ class ApplicationController < ActionController::Base
 
   # Resolve the SRV records for the hostname in the URL
   def expand_url(url)
+    uri = URI(url)
+    resolver = Resolv::DNS.new()
 
-    if ENV['KUBERNETES_SERVICE_HOST'].nil? #look if we are running in k8s
-      # lookup the SRV record and use if found
-      begin
-        uri = URI(url)
-        resolver = Resolv::DNS.new()
-        # if host is relative, append the service discovery name
-        host = uri.host.count('.') > 0 ? uri.host : "#{uri.host}.#{ENV["_SERVICE_DISCOVERY_NAME"]}"
-        srv = resolver.getresource(host, Resolv::DNS::Resource::IN::SRV)
-        uri.host = srv.target.to_s
-        uri.port = srv.port.to_s
-      #rescue => e
-        #logger.error e.message
-        #logger.error e.backtrace.join("\n")
+    # if host is relative, append the service discovery name
+    host = uri.host.count('.') > 0 ? uri.host : "#{uri.host}.#{ENV["_SERVICE_DISCOVERY_NAME"]}"
+
+    # lookup the SRV record and use if found
+    begin
+      srv = resolver.getresource(host, Resolv::DNS::Resource::IN::SRV)
+      uri.host = srv.target.to_s
+      uri.port = srv.port.to_s
+      logger.info "uri port is #{uri.port}"
+      if uri.port == '0'
+        uri.port = 3000
+        logger.info "uri port is now #{uri.port}"
       end
-    else
-      begin
-        port = '80'
-        uri = url
-      end
+    rescue => e
+      logger.error e.message
+      logger.error e.backtrace.join("\n")
     end
 
-    #logger.info "expanded #{url} to #{uri}"
+    logger.info "expanded #{url} to #{uri}"
     uri
   end
 
-# expand_url 'http://ecsdemo-nodejs.default.svc.cluster.local/'
   before_action :discover_availability_zone
   before_action :code_hash
 
