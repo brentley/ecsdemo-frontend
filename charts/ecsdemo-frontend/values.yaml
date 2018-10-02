@@ -3,8 +3,8 @@
 # Declare variables to be passed into your templates.
 replicaCount: 2
 image:
-  repository: draft
-  tag: dev
+  repository: 250756795962.dkr.ecr.us-west-2.amazonaws.com/jenkinsx/ecsdemo-frontend
+  tag: 0.0.4
   pullPolicy: IfNotPresent
 service:
   name: ecsdemo-frontend
