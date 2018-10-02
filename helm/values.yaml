@@ -1,2 +1,3 @@
 replica: 3
 version: 'latest'
+servicetype: 'LoadBalancer'
