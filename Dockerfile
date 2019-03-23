@@ -3,7 +3,7 @@ FROM ruby:2.5-slim
 COPY Gemfile Gemfile.lock /usr/src/app/
 WORKDIR /usr/src/app
 
-RUN apt-get update && apt-get -y install curl jq libgmp3-dev ruby-dev build-essential libsqlite3-dev && \
+RUN apt-get update && apt-get -y install iproute2 curl jq libgmp3-dev ruby-dev build-essential libsqlite3-dev && \
     bundle install && \
     apt-get autoremove -y --purge && \
     apt-get remove -y --auto-remove --purge ruby-dev libgmp3-dev build-essential libsqlite3-dev && \
