@@ -3,6 +3,10 @@
 set -x
 
 IP=$(ip route show |grep -o src.* |cut -f2 -d" ")
+if [[ ${IP} == "" ]]; then
+  IP=$(hostname -i)
+fi
+
 SUBNET=$(echo ${IP} | cut -f1 -d.)
 NETWORK=$(echo ${IP} | cut -f3 -d.)
 
