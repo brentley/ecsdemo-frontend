@@ -3,9 +3,15 @@ service:
   desiredCount: 3
   maxSize: 6
   port: 3000
+  networkMode: awsvpc
   pathPatterns:
   - /*
   discoveryTTL: 5
   environment:
     CRYSTAL_URL: "http://ecsdemo-crystal/crystal"
-    NODEJS_URL: "http://ecsdemo-nodejs/"
+    NODEJS_URL: "http://a924fbf777e4511e9b237126966dd493-62125454.us-east-1.elb.amazonaws.com"
+  pipeline:
+      acceptance:
+        environment: frontend
+      production:
+        disabled: true   
