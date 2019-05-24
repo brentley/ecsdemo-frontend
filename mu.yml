@@ -1,7 +1,8 @@
 ---
 service:
+  minSize: 3
   desiredCount: 3
-  maxSize: 6
+  maxSize: 15
   port: 3000
   networkMode: awsvpc
   pathPatterns:
