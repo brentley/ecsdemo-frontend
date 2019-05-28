@@ -9,7 +9,7 @@ service:
   - /*
   discoveryTTL: 5
   environment:
-    CRYSTAL_URL: "http://ecsdemo-crystal/crystal"
+    CRYSTAL_URL: "http://demo-lo-elb-u10z1p6ibjem-1337248762.us-east-1.elb.amazonaws.com/crystal"
     NODEJS_URL: "http://a924fbf777e4511e9b237126966dd493-62125454.us-east-1.elb.amazonaws.com"
   pipeline:
       acceptance:
