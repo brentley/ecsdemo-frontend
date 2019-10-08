@@ -10,7 +10,7 @@ class ApplicationController < ActionController::Base
   # Example endpoint that calls the backend nodejs api
   def index
     begin
-      req = Net::HTTP::Get.new(nodejs_uri.to_s)
+      req = Net::HTTP::Get.new(nodejs_uri.path)
       res = Net::HTTP.start(nodejs_uri.host, nodejs_uri.port) {|http|
         http.read_timeout = 2
         http.open_timeout = 2
@@ -30,7 +30,7 @@ class ApplicationController < ActionController::Base
     end
 
     begin
-      crystalreq = Net::HTTP::Get.new(crystal_uri.to_s)
+      crystalreq = Net::HTTP::Get.new(crystal_uri.path)
       crystalres = Net::HTTP.start(crystal_uri.host, crystal_uri.port) {|http|
         http.read_timeout = 2
         http.open_timeout = 2
