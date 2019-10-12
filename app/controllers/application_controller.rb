@@ -10,7 +10,8 @@ class ApplicationController < ActionController::Base
   # Example endpoint that calls the backend nodejs api
   def index
     begin
-      req = Net::HTTP::Get.new(nodejs_uri.path)
+      # req = Net::HTTP::Get.new(nodejs_uri.path.presence || "/")
+      req = Net::HTTP::Get.new(nodejs_uri.request_uri)
       res = Net::HTTP.start(nodejs_uri.host, nodejs_uri.port) {|http|
         http.read_timeout = 2
         http.open_timeout = 2
@@ -30,7 +31,8 @@ class ApplicationController < ActionController::Base
     end
 
     begin
-      crystalreq = Net::HTTP::Get.new(crystal_uri.path)
+      # crystalreq = Net::HTTP::Get.new(crystal_uri.path.presence || "/")
+      crystalreq = Net::HTTP::Get.new(crystal_uri.request_uri)
       crystalres = Net::HTTP.start(crystal_uri.host, crystal_uri.port) {|http|
         http.read_timeout = 2
         http.open_timeout = 2
@@ -56,11 +58,19 @@ class ApplicationController < ActionController::Base
   end
 
   def crystal_uri
-    expand_url ENV["CRYSTAL_URL"]
+    if ENV['MESH_RUN'].present? && ENV['MESH_RUN'] == 'true' 
+      uri = URI(ENV["CRYSTAL_URL"])  
+    else
+      expand_url ENV["CRYSTAL_URL"]
+    end
   end
 
   def nodejs_uri
-    expand_url ENV["NODEJS_URL"]
+    if ENV['MESH_RUN'].present? && ENV['MESH_RUN'] == 'true' 
+      uri = URI(ENV["NODEJS_URL"])
+    else
+      expand_url ENV["NODEJS_URL"]
+    end
   end
 
   # Resolve the SRV records for the hostname in the URL
