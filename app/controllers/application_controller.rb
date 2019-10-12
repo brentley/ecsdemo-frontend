@@ -114,4 +114,5 @@ class ApplicationController < ActionController::Base
   def custom_header
     response.headers['Cache-Control'] = 'max-age=86400, public'
   end
+  
 end
