@@ -7,4 +7,8 @@ Rails.application.routes.draw do
 
   # This URL is used for health checks
   get 'health' => 'application#health'
+
+  # This URL is used for json
+  get 'json' => 'application#json'
+
 end

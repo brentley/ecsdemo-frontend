@@ -50,6 +50,30 @@ class ApplicationController < ActionController::Base
       logger.error e.backtrace.join("\n")
       @crystal = "no backend found"
     end
+
+    if params[:type].present? && params[:type] == "json"
+      response = { }
+      response[:ruby] = {
+        :az   => @az,
+        :hash => @code_hash
+      }
+
+      if @crystal != "no backend found"
+        response[:crystal] = { :text => @crystal }
+      end
+
+      if @text != "no backend found"
+        response[:nodejs] = { :text => @text }
+      end
+
+      render json: response.to_json
+      
+    end
+
+  end
+
+  def json
+    redirect_to root_path(:type => "json")
   end
 
   # This endpoint is used for health checks. It should return a 200 OK when the app is up and ready to serve requests.
