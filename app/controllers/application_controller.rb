@@ -12,7 +12,10 @@ class ApplicationController < ActionController::Base
     begin
       # req = Net::HTTP::Get.new(nodejs_uri.path.presence || "/")
       req = Net::HTTP::Get.new(nodejs_uri.request_uri)
-      req["HTTP_CANARY_FLEET"] = request.headers["HTTP_CANARY_FLEET"]
+      if request.headers["HTTP_CANARY_FLEET"].present?
+        req["canary_fleet"] = request.headers["HTTP_CANARY_FLEET"]
+      end
+
       res = Net::HTTP.start(nodejs_uri.host, nodejs_uri.port) {|http|
         http.read_timeout = 2
         http.open_timeout = 2
@@ -34,7 +37,10 @@ class ApplicationController < ActionController::Base
     begin
       # crystalreq = Net::HTTP::Get.new(crystal_uri.path.presence || "/")
       crystalreq = Net::HTTP::Get.new(crystal_uri.request_uri)
-      crystalreq["HTTP_CANARY_FLEET"] = request.headers["HTTP_CANARY_FLEET"]
+      if request.headers["HTTP_CANARY_FLEET"].present?
+        crystalreq["canary_fleet"] = request.headers["HTTP_CANARY_FLEET"]
+      end
+
       crystalres = Net::HTTP.start(crystal_uri.host, crystal_uri.port) {|http|
         http.read_timeout = 2
         http.open_timeout = 2
@@ -57,7 +63,8 @@ class ApplicationController < ActionController::Base
       response = { }
       response[:ruby] = {
         :az   => @az,
-        :hash => @code_hash
+        :hash => @code_hash,
+        :canary_fleet => request.headers["HTTP_CANARY_FLEET"].present?
       }
 
       if @crystal != "no backend found"
