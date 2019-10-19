@@ -12,6 +12,7 @@ class ApplicationController < ActionController::Base
     begin
       # req = Net::HTTP::Get.new(nodejs_uri.path.presence || "/")
       req = Net::HTTP::Get.new(nodejs_uri.request_uri)
+      req["HTTP_FORMAT_HEADER"] = request.headers["HTTP_FORMAT_HEADER"]
       res = Net::HTTP.start(nodejs_uri.host, nodejs_uri.port) {|http|
         http.read_timeout = 2
         http.open_timeout = 2
@@ -33,6 +34,7 @@ class ApplicationController < ActionController::Base
     begin
       # crystalreq = Net::HTTP::Get.new(crystal_uri.path.presence || "/")
       crystalreq = Net::HTTP::Get.new(crystal_uri.request_uri)
+      crystalreq["HTTP_FORMAT_HEADER"] = request.headers["HTTP_FORMAT_HEADER"]
       crystalres = Net::HTTP.start(crystal_uri.host, crystal_uri.port) {|http|
         http.read_timeout = 2
         http.open_timeout = 2
