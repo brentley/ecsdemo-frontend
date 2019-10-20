@@ -1,6 +1,7 @@
 require 'net/http'
 require 'resolv'
 require 'uri'
+require 'time'
 
 class ApplicationController < ActionController::Base
   # Prevent CSRF attacks by raising an exception.
@@ -9,8 +10,17 @@ class ApplicationController < ActionController::Base
 
   # Example endpoint that calls the backend nodejs api
   def index
+
+    epochms = (Time.now.to_f * 1000).to_i
+
     begin
-      req = Net::HTTP::Get.new(nodejs_uri.to_s)
+      # req = Net::HTTP::Get.new(nodejs_uri.path.presence || "/")
+      req = Net::HTTP::Get.new(nodejs_uri.request_uri)
+      if request.headers["HTTP_CANARY_FLEET"].present?
+        req["canary_fleet"] = request.headers["HTTP_CANARY_FLEET"]
+      end
+
+      req["epoch_ms"] = epochms
       res = Net::HTTP.start(nodejs_uri.host, nodejs_uri.port) {|http|
         http.read_timeout = 2
         http.open_timeout = 2
@@ -30,7 +40,13 @@ class ApplicationController < ActionController::Base
     end
 
     begin
-      crystalreq = Net::HTTP::Get.new(crystal_uri.to_s)
+      # crystalreq = Net::HTTP::Get.new(crystal_uri.path.presence || "/")
+      crystalreq = Net::HTTP::Get.new(crystal_uri.request_uri)
+      if request.headers["HTTP_CANARY_FLEET"].present?
+        crystalreq["canary_fleet"] = request.headers["HTTP_CANARY_FLEET"]
+      end
+
+      crystalreq["epoch_ms"] = epochms
       crystalres = Net::HTTP.start(crystal_uri.host, crystal_uri.port) {|http|
         http.read_timeout = 2
         http.open_timeout = 2
@@ -48,6 +64,32 @@ class ApplicationController < ActionController::Base
       logger.error e.backtrace.join("\n")
       @crystal = "no backend found"
     end
+
+    if params[:type].present? && params[:type] == "json"
+      response = { }
+      response[:ruby] = {
+        :az   => @az,
+        :hash => @code_hash,
+        :canary_fleet => request.headers["HTTP_CANARY_FLEET"].present?,
+        :epoch_ms => epochms
+      }
+
+      if @crystal != "no backend found"
+        response[:crystal] = { :text => @crystal }
+      end
+
+      if @text != "no backend found"
+        response[:nodejs] = { :text => @text }
+      end
+
+      render json: response.to_json
+      
+    end
+
+  end
+
+  def json
+    redirect_to root_path(:type => "json")
   end
 
   # This endpoint is used for health checks. It should return a 200 OK when the app is up and ready to serve requests.
@@ -56,11 +98,19 @@ class ApplicationController < ActionController::Base
   end
 
   def crystal_uri
-    expand_url ENV["CRYSTAL_URL"]
+    if ENV['MESH_RUN'].present? && ENV['MESH_RUN'] == 'true' 
+      uri = URI(ENV["CRYSTAL_URL"])  
+    else
+      expand_url ENV["CRYSTAL_URL"]
+    end
   end
 
   def nodejs_uri
-    expand_url ENV["NODEJS_URL"]
+    if ENV['MESH_RUN'].present? && ENV['MESH_RUN'] == 'true' 
+      uri = URI(ENV["NODEJS_URL"])
+    else
+      expand_url ENV["NODEJS_URL"]
+    end
   end
 
   # Resolve the SRV records for the hostname in the URL
@@ -104,4 +154,5 @@ class ApplicationController < ActionController::Base
   def custom_header
     response.headers['Cache-Control'] = 'max-age=86400, public'
   end
+  
 end
