@@ -1,6 +1,7 @@
 require 'net/http'
 require 'resolv'
 require 'uri'
+require 'time'
 
 class ApplicationController < ActionController::Base
   # Prevent CSRF attacks by raising an exception.
@@ -9,6 +10,9 @@ class ApplicationController < ActionController::Base
 
   # Example endpoint that calls the backend nodejs api
   def index
+
+    epochms = (Time.now.to_f * 1000).to_i
+
     begin
       # req = Net::HTTP::Get.new(nodejs_uri.path.presence || "/")
       req = Net::HTTP::Get.new(nodejs_uri.request_uri)
@@ -16,6 +20,7 @@ class ApplicationController < ActionController::Base
         req["canary_fleet"] = request.headers["HTTP_CANARY_FLEET"]
       end
 
+      req["epoch_ms"] = epochms
       res = Net::HTTP.start(nodejs_uri.host, nodejs_uri.port) {|http|
         http.read_timeout = 2
         http.open_timeout = 2
@@ -41,6 +46,7 @@ class ApplicationController < ActionController::Base
         crystalreq["canary_fleet"] = request.headers["HTTP_CANARY_FLEET"]
       end
 
+      crystalreq["epoch_ms"] = epochms
       crystalres = Net::HTTP.start(crystal_uri.host, crystal_uri.port) {|http|
         http.read_timeout = 2
         http.open_timeout = 2
@@ -64,7 +70,8 @@ class ApplicationController < ActionController::Base
       response[:ruby] = {
         :az   => @az,
         :hash => @code_hash,
-        :canary_fleet => request.headers["HTTP_CANARY_FLEET"].present?
+        :canary_fleet => request.headers["HTTP_CANARY_FLEET"].present?,
+        :epoch_ms => epochms
       }
 
       if @crystal != "no backend found"
