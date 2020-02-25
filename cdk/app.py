@@ -12,15 +12,17 @@ from aws_cdk import (
 from os import getenv
 
 
+# Creating a construct that will populate the required objects created in the platform repo such as vpc, ecs cluster, and service discovery namespace
 class BasePlatform(core.Construct):
     
     def __init__(self, scope: core.Construct, id: str, **kwargs):
         super().__init__(scope, id, **kwargs)
+        self.environment_name = 'ecsworkshop'
 
         # The base platform stack is where the VPC was created, so all we need is the name to do a lookup and import it into this stack for use
         self.vpc = aws_ec2.Vpc.from_lookup(
-            self, "ECSWorkshopVPC",
-            vpc_name='ecsworkshop-base/BaseVPC'
+            self, "VPC",
+            vpc_name='{}-base/BaseVPC'.format(self.environment_name)
         )
         
         self.sd_namespace = aws_servicediscovery.PrivateDnsNamespace.from_private_dns_namespace_attributes(
