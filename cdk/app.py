@@ -40,6 +40,11 @@ class BasePlatform(core.Construct):
             default_cloud_map_namespace=self.sd_namespace
         )
         
+        self.services_sec_grp = aws_ec2.SecurityGroup.from_security_group_id(
+            self, "ServicesSecGrp",
+            security_group_id=core.Fn.import_value('ServicesSecGrp')
+        )
+
 
 class FrontendService(core.Stack):
     
@@ -66,6 +71,11 @@ class FrontendService(core.Stack):
             public_load_balancer=True,
             cloud_map_options=self.base_platform.sd_namespace,
             task_image_options=self.fargate_task_image
+        )
+        
+        self.fargate_load_balanced_service.service.connections.allow_to(
+            self.base_platform.services_sec_grp,
+            port_range=aws_ec2.Port(protocol=aws_ec2.Protocol.TCP, string_representation="frontendtobackend", from_port=3000, to_port=3000)
         )
 
 
