@@ -6,6 +6,7 @@ from aws_cdk import (
     aws_ecs,
     aws_ecs_patterns,
     aws_servicediscovery,
+    aws_iam,
     core,
 )
 
@@ -54,11 +55,12 @@ class FrontendService(core.Stack):
         self.base_platform = BasePlatform(self, self.stack_name)
 
         self.fargate_task_image = aws_ecs_patterns.ApplicationLoadBalancedTaskImageOptions(
-            image=aws_ecs.ContainerImage.from_registry("brentley/ecsdemo-frontend"),
+            image=aws_ecs.ContainerImage.from_registry("adam9098/ecsdemo-frontend"),
             container_port=3000,
             environment={
                 "CRYSTAL_URL": "http://ecsdemo-crystal.service:3000/crystal",
-                "NODEJS_URL": "http://ecsdemo-nodejs.service:3000"
+                "NODEJS_URL": "http://ecsdemo-nodejs.service:3000",
+                "REGION": getenv('AWS_DEFAULT_REGION')
             },
         )
 
@@ -71,6 +73,13 @@ class FrontendService(core.Stack):
             public_load_balancer=True,
             cloud_map_options=self.base_platform.sd_namespace,
             task_image_options=self.fargate_task_image
+        )
+        
+        self.fargate_load_balanced_service.task_definition.add_to_task_role_policy(
+            aws_iam.PolicyStatement(
+                actions=['ec2:DescribeSubnets'],
+                resources=['*']
+            )
         )
         
         self.fargate_load_balanced_service.service.connections.allow_to(
