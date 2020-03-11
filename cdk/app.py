@@ -66,6 +66,7 @@ class FrontendService(core.Stack):
 
         self.fargate_load_balanced_service = aws_ecs_patterns.ApplicationLoadBalancedFargateService(
             self, "FrontendFargateLBService",
+            service_name='ecsdemo-frontend',
             cluster=self.base_platform.ecs_cluster,
             cpu=256,
             memory_limit_mib=512,
