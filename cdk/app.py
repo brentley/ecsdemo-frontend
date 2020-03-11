@@ -86,6 +86,19 @@ class FrontendService(core.Stack):
             self.base_platform.services_sec_grp,
             port_range=aws_ec2.Port(protocol=aws_ec2.Protocol.TCP, string_representation="frontendtobackend", from_port=3000, to_port=3000)
         )
+        
+        # Enable Service Autoscaling
+        #self.autoscale = self.fargate_load_balanced_service.service.auto_scale_task_count(
+        #    min_capacity=1,
+        #    max_capacity=10
+        #)
+        
+        #self.autoscale.scale_on_cpu_utilization(
+        #    "CPUAutoscaling",
+        #    target_utilization_percent=50,
+        #    scale_in_cooldown=core.Duration.seconds(30),
+        #    scale_out_cooldown=core.Duration.seconds(30)
+        #)
 
 
 _env = core.Environment(account=getenv('AWS_ACCOUNT_ID'), region=getenv('AWS_DEFAULT_REGION'))
