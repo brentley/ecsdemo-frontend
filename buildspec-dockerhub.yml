@@ -36,6 +36,7 @@ phases:
       - echo $IMAGE_TAG > code_hash.txt
       - docker build -t $DOCKER_HUB_USERNAME/$PROJECT_NAME:$IMAGE_TAG .
       - docker tag $DOCKER_HUB_USERNAME/$PROJECT_NAME:$IMAGE_TAG $DOCKER_HUB_USERNAME/$PROJECT_NAME:$IMAGE_WORD_TAG
+      - docker build -f Dockerfile.cdk -t $DOCKER_HUB_USERNAME/$PROJECT_NAME:cdk .
       # - docker build -t myimage .
   post_build:
     commands:
@@ -44,6 +45,7 @@ phases:
       - echo Pushing the Docker image...
       - docker push $DOCKER_HUB_USERNAME/$PROJECT_NAME:$IMAGE_TAG
       - docker push $DOCKER_HUB_USERNAME/$PROJECT_NAME:$IMAGE_WORD_TAG
+      - docker push $DOCKER_HUB_USERNAME/$PROJECT_NAME:cdk
       # - docker pull anchore/cli
       # - docker run -d -v $(pwd):/source-dir -v /var/run/docker.sock:/var/run/docker.sock --name anchore anchore/cli:latest
       # - docker exec anchore anchore feeds sync
