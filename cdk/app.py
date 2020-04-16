@@ -33,10 +33,15 @@ class BasePlatform(core.Construct):
             namespace_id=core.Fn.import_value('NSID')
         )
         
+        self.cluster_sec_grp = aws_ec2.SecurityGroup.from_security_group_id(
+            self, "ClusterSecGrp",
+            security_group_id=core.Fn.import_value('ECSSecGrpList')
+        )
+        
         self.ecs_cluster = aws_ecs.Cluster.from_cluster_attributes(
             self, "ECSCluster",
             cluster_name=core.Fn.import_value('ECSClusterName'),
-            security_groups=[],
+            security_groups=[self.cluster_sec_grp],
             vpc=self.vpc,
             default_cloud_map_namespace=self.sd_namespace
         )
@@ -54,8 +59,8 @@ class FrontendService(core.Stack):
 
         self.base_platform = BasePlatform(self, self.stack_name)
 
-        self.fargate_task_image = aws_ecs_patterns.ApplicationLoadBalancedTaskImageOptions(
-            image=aws_ecs.ContainerImage.from_registry("adam9098/ecsdemo-frontend"),
+        self.task_image = aws_ecs_patterns.ApplicationLoadBalancedTaskImageOptions(
+            image=aws_ecs.ContainerImage.from_registry("adam9098/ecsdemo-frontend:cdk"),
             container_port=3000,
             environment={
                 "CRYSTAL_URL": "http://ecsdemo-crystal.service:3000/crystal",
@@ -64,32 +69,46 @@ class FrontendService(core.Stack):
             },
         )
 
-        self.fargate_load_balanced_service = aws_ecs_patterns.ApplicationLoadBalancedFargateService(
-            self, "FrontendFargateLBService",
-            service_name='ecsdemo-frontend',
-            cluster=self.base_platform.ecs_cluster,
-            cpu=256,
-            memory_limit_mib=512,
-            desired_count=1,
-            public_load_balancer=True,
-            cloud_map_options=self.base_platform.sd_namespace,
-            task_image_options=self.fargate_task_image
+        if getenv('EC2MODE') == 'True':
+            self.load_balanced_service = aws_ecs_patterns.ApplicationLoadBalancedEc2Service(
+                self, "FrontendLBService",
+                service_name='ecsdemo-frontend',
+                cluster=self.base_platform.ecs_cluster,
+                cpu=256,
+                memory_limit_mib=512,
+                desired_count=1,
+                public_load_balancer=True,
+                cloud_map_options=self.base_platform.sd_namespace,
+                task_image_options=self.task_image
+            )
+            
+        else: 
+            self.load_balanced_service = aws_ecs_patterns.ApplicationLoadBalancedFargateService(
+                self, "FrontendFargateLBService",
+                service_name='ecsdemo-frontend',
+                cluster=self.base_platform.ecs_cluster,
+                cpu=256,
+                memory_limit_mib=512,
+                desired_count=1,
+                public_load_balancer=True,
+                cloud_map_options=self.base_platform.sd_namespace,
+                task_image_options=self.task_image
+            )
+            
+        self.load_balanced_service.service.connections.allow_to(
+            self.base_platform.services_sec_grp,
+            port_range=aws_ec2.Port(protocol=aws_ec2.Protocol.TCP, string_representation="frontendtobackend", from_port=3000, to_port=3000)
         )
         
-        self.fargate_load_balanced_service.task_definition.add_to_task_role_policy(
+        self.load_balanced_service.task_definition.add_to_task_role_policy(
             aws_iam.PolicyStatement(
                 actions=['ec2:DescribeSubnets'],
                 resources=['*']
             )
         )
         
-        self.fargate_load_balanced_service.service.connections.allow_to(
-            self.base_platform.services_sec_grp,
-            port_range=aws_ec2.Port(protocol=aws_ec2.Protocol.TCP, string_representation="frontendtobackend", from_port=3000, to_port=3000)
-        )
-        
         # Enable Service Autoscaling
-        #self.autoscale = self.fargate_load_balanced_service.service.auto_scale_task_count(
+        #self.autoscale = self.load_balanced_service.service.auto_scale_task_count(
         #    min_capacity=1,
         #    max_capacity=10
         #)
