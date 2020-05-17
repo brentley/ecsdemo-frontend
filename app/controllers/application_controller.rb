@@ -11,7 +11,7 @@ class ApplicationController < ActionController::Base
   def index
     begin
       req = Net::HTTP::Get.new(nodejs_uri.to_s)
-      res = Net::HTTP.start(nodejs_uri.host, nodejs_uri.port) {|http|
+      res = Net::HTTP.start(nodejs_uri.host, nodejs_uri.port, :use_ssl => nodejs_uri.scheme == 'https') {|http|
         http.read_timeout = 2
         http.open_timeout = 2
         http.request(req)
@@ -25,13 +25,12 @@ class ApplicationController < ActionController::Base
 
     rescue => e
       logger.error e.message
-      logger.error e.backtrace.join("\n")
       @text = "no backend found"
     end
 
     begin
       crystalreq = Net::HTTP::Get.new(crystal_uri.to_s)
-      crystalres = Net::HTTP.start(crystal_uri.host, crystal_uri.port) {|http|
+      crystalres = Net::HTTP.start(crystal_uri.host, crystal_uri.port, :use_ssl => crystal_uri.scheme == 'https') {|http|
         http.read_timeout = 2
         http.open_timeout = 2
         http.request(crystalreq)
@@ -45,7 +44,6 @@ class ApplicationController < ActionController::Base
 
     rescue => e
       logger.error e.message
-      logger.error e.backtrace.join("\n")
       @crystal = "no backend found"
     end
   end
@@ -83,7 +81,6 @@ class ApplicationController < ActionController::Base
       end
     rescue => e
       logger.error e.message
-      logger.error e.backtrace.join("\n")
     end
 
     logger.info "expanded #{url} to #{uri}"
