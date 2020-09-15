@@ -1,0 +1,94 @@
+# Buildspec runs in the build stage of your pipeline.
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      docker: 18
+      ruby: 2.6
+    commands:
+      - echo "cd into $CODEBUILD_SRC_DIR"
+      - cd $CODEBUILD_SRC_DIR
+      # Download the copilot linux binary.
+      - wget https://ecs-cli-v2-release.s3.amazonaws.com/copilot-linux-v0.3.0
+      - mv ./copilot-linux-v0.3.0 ./copilot-linux
+      - chmod +x ./copilot-linux
+  build:
+    commands:
+      - echo "Run your tests"
+      # - make test
+  post_build:
+    commands:
+      - ls -l
+      - export COLOR="false"
+      # Find all the local services in the workspace.
+      - svcs=$(./copilot-linux svc ls --local --json | jq '.services[].name' | sed 's/"//g')
+      # Find all the environments.
+      - envs=$(./copilot-linux env ls --json | jq '.environments[].name' | sed 's/"//g')
+      # Generate the cloudformation templates.
+      # The tag is the build ID but we replaced the colon ':' with a dash '-'.
+      - tag=$(sed 's/:/-/g' <<<"$CODEBUILD_BUILD_ID")
+      - >
+        for env in $envs; do
+          for svc in $svcs; do
+          ./copilot-linux svc package -n $svc -e $env --output-dir './infrastructure' --tag $tag;
+          done;
+        done;
+      - ls -lah ./infrastructure
+      # If addons exists, upload addons templates to each S3 bucket and write template URL to template config files.
+      - |
+        for svc in $svcs; do
+          ADDONSFILE=./infrastructure/$svc.addons.stack.yml
+          if [ -f "$ADDONSFILE" ]; then
+            tmp=$(mktemp)
+            timestamp=$(date +%s)
+            aws s3 cp "$ADDONSFILE" "s3://stackset-ecsworkshop-inf-pipelinebuiltartifactbuc-gdtbnoxjl53h/manual/$timestamp/$svc.addons.stack.yml";
+            jq --arg a "https://stackset-ecsworkshop-inf-pipelinebuiltartifactbuc-gdtbnoxjl53h.s3-us-west-2.amazonaws.com/manual/$timestamp/$svc.addons.stack.yml" '.Parameters.AddonsTemplateURL = $a' ./infrastructure/$svc-test.params.json > "$tmp" && mv "$tmp" ./infrastructure/$svc-test.params.json
+          fi
+        done;
+      # Build images
+      # - For each manifest file:
+      #   - Read the path to the Dockerfile by translating the YAML file into JSON.
+      #   - Run docker build.
+      #   - For each environment:
+      #     - Retrieve the ECR repository.
+      #     - Login and push the image.
+      - >
+        for svc in $svcs; do
+          manifest=$(cat $CODEBUILD_SRC_DIR/copilot/$svc/manifest.yml | ruby -ryaml -rjson -e 'puts JSON.pretty_generate(YAML.load(ARGF))')
+          base_dockerfile=$(echo $manifest | jq '.image.build')
+          build_dockerfile=$(echo $manifest| jq 'if .image.build?.dockerfile? then .image.build.dockerfile else "" end' | sed 's/"//g')
+          build_context=$(echo $manifest| jq 'if .image.build?.context? then .image.build.context else "" end' | sed 's/"//g')
+          dockerfile_args=$(echo $manifest | jq 'if .image.build?.args? then .image.build.args else "" end | to_entries?')
+          df_rel_path=$( echo $base_dockerfile | sed 's/"//g')
+          if [ -n "$build_dockerfile" ]; then 
+            df_rel_path=$build_dockerfile
+          fi
+          df_path=$df_rel_path
+          df_dir_path=$(dirname "$df_path")
+          if [ -n "$build_context" ]; then
+            df_dir_path=$build_context
+          fi
+          build_args=
+          if [ -n "$dockerfile_args" ]; then
+            for arg in $(echo $dockerfile_args | jq -r '.[] | "\(.key)=\(.value)"'); do 
+              build_args="$build_args--build-arg $arg "
+            done
+          fi
+          echo "Service: $svc"
+          echo "Relative Dockerfile path: $df_rel_path"
+          echo "Docker build context: $df_dir_path"
+          echo "Docker build args: $build_args"
+          echo "Running command: docker build -t $svc:$tag $build_args-f $df_path $df_dir_path";
+          docker build -t $svc:$tag $build_args-f $df_path $df_dir_path;
+          image_id=$(docker images -q $svc:$tag);
+          for env in $envs; do
+            repo=$(cat $CODEBUILD_SRC_DIR/infrastructure/$svc-$env.params.json | jq '.Parameters.ContainerImage' | sed 's/"//g');
+            region=$(echo $repo | cut -d'.' -f4);
+            $(aws ecr get-login --no-include-email --region $region);
+            docker tag $image_id $repo;
+            docker push $repo;
+          done;
+        done;
+artifacts:
+  files:
+    - "infrastructure/*"
