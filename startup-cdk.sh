@@ -84,7 +84,10 @@ if [[ -z ${zone} ]]; then
   declare -a subnets=( $(aws ec2 describe-subnets | jq .Subnets[].CidrBlock| sed ':a;N;$!ba;s/\n/ /g') )
   for sub in "${subnets[@]}"; do
     if $(ruby -e "puts(IPAddr.new($sub.to_s).include? $ip_addr.to_s)") == 'true'; then
-      zone=$(aws ec2 describe-subnets | jq -r ".Subnets[] | select(.CidrBlock==$sub) | .AvailabilityZone" | grep -o .$)
+      details=$(aws ec2 describe-subnets | jq -r ".Subnets[] | select(.CidrBlock==$sub)")
+      if [[ $(echo $details | jq .Tags) != "null" ]]; then
+        zone=$(echo $details | jq -r 'select(.Tags[].Value=="ecsworkshop") | .AvailabilityZone' | sort -u | grep -o .$)
+      fi
     fi
   done
 fi

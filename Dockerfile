@@ -14,7 +14,7 @@ RUN apt-get update && apt-get -y install iproute2 curl jq libgmp3-dev ruby-dev b
     rm -rvf /root/* /root/.gem* /var/cache/*
 
 COPY . /usr/src/app
-RUN chmod +x /usr/src/app/startup.sh
+RUN chmod +x /usr/src/app/startup-cdk.sh
 
 # helpful when trying to update gems -> bundle update, remove the Gemfile.lock, start ruby
 # RUN bundle update
@@ -23,4 +23,4 @@ RUN chmod +x /usr/src/app/startup.sh
 HEALTHCHECK --interval=10s --timeout=3s \
   CMD curl -f -s http://localhost:3000/health/ || exit 1
 EXPOSE 3000
-ENTRYPOINT ["bash","/usr/src/app/startup.sh"]
+ENTRYPOINT ["bash","/usr/src/app/startup-cdk.sh"]
