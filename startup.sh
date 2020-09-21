@@ -79,7 +79,6 @@ fi
 
 # Still no luck? Perhaps we're running fargate!
 if [[ -z ${zone} ]]; then
-  export AWS_DEFAULT_REGION=$REGION
   ip_addr=$(curl -m2 -s ${ECS_CONTAINER_METADATA_URI} | jq '.Networks[].IPv4Addresses[]')
   declare -a subnets=( $(aws ec2 describe-subnets | jq .Subnets[].CidrBlock| sed ':a;N;$!ba;s/\n/ /g') )
   for sub in "${subnets[@]}"; do
