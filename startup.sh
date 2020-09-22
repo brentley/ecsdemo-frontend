@@ -77,6 +77,17 @@ if [[ ${zone} == "unknown" ]]; then
   zone=$(curl -m2 -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq -r '.availabilityZone' | grep -o .$)
 fi
 
+# Still no luck? Perhaps we're running fargate!
+if [[ -z ${zone} ]]; then
+  ip_addr=$(curl -m2 -s ${ECS_CONTAINER_METADATA_URI} | jq '.Networks[].IPv4Addresses[]')
+  declare -a subnets=( $(aws ec2 describe-subnets | jq .Subnets[].CidrBlock| sed ':a;N;$!ba;s/\n/ /g') )
+  for sub in "${subnets[@]}"; do
+    if $(ruby -e "puts(IPAddr.new($sub.to_s).include? $ip_addr.to_s)") == 'true'; then
+      zone=$(aws ec2 describe-subnets | jq -r ".Subnets[] | select(.CidrBlock==$sub) | .AvailabilityZone" | grep -o .$)
+    fi
+  done
+fi
+
 export CODE_HASH="$(cat code_hash.txt)"
 export AZ="${IP} in AZ-${zone}"
 
