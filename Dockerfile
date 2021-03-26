@@ -7,7 +7,7 @@ WORKDIR /usr/src/app
 RUN apt-get update && apt-get -y install iproute2 curl jq libgmp3-dev ruby-dev build-essential sqlite libsqlite3-dev python3 python3-pip && \
     gem install bundler:1.17.3 && \
     bundle install && \
-    pip3 install awscli && \
+    pip3 install awscli netaddr && \
     apt-get autoremove -y --purge && \
     apt-get remove -y --auto-remove --purge ruby-dev libgmp3-dev build-essential libsqlite3-dev && \
     apt-get clean && \
